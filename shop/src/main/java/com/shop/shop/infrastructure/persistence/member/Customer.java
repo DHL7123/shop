@@ -1,12 +1,15 @@
 package com.shop.shop.infrastructure.persistence.member;
 
 import  com.shop.shop.application.member.dto.request.SignupRequestDto;
+import com.shop.shop.infrastructure.persistence.order.Orders;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import static  com.shop.shop.infrastructure.constant.StatusConstants.ACTIVE;
 
@@ -50,6 +53,10 @@ public class Customer {
     private LocalDateTime lastLoginDate; // 최종 로그인 일시
     @Column
     private LocalDateTime statusChangedDate; // 상태 변경 일시
+
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Orders> orders = new ArrayList<>();
+
 
     public static Customer initializeCustomer(SignupRequestDto request, String encryptedPassword) {
         return new Customer(request, encryptedPassword);
