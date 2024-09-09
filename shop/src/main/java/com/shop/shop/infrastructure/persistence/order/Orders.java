@@ -45,4 +45,19 @@ public class Orders {
     private BigDecimal totalPrice;
     @Column
     private String remarks;
+
+
+    public Orders(Integer productId, Integer quantity, Customer customer) {
+        this.productId = productId;
+        this.quantity = quantity;
+        this.customer = customer;
+        this.orderDate = LocalDateTime.now(); // 주문 날짜 초기화
+        this.status = "PENDING"; // 기본 상태
+    }
+
+    public  void updateOrder(Integer productId, Integer quantity) {
+        this.productId = productId;
+        this.quantity = quantity;
+    }
+
 }
