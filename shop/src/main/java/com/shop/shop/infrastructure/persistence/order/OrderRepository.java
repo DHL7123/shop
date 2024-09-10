@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface OrderRepository extends JpaRepository<Orders,Integer> {
+public interface OrderRepository extends JpaRepository<Orders, Long> {
 
-    @Query("SELECT o FROM Orders o JOIN FETCH o.customer WHERE o.pk = :orderId")
-    Optional<Orders> findByIdWithCustomer(@Param("orderId") Integer orderId);
+    @Query("SELECT o FROM Orders o JOIN FETCH o.customer")
+    List<Orders> findAllWithCustomer();
 }

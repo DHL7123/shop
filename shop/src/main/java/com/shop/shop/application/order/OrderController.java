@@ -16,18 +16,21 @@ import java.util.List;
 public class OrderController {
 
     private final OrderService orderService;
-
+    // Request/Response Log -> AOP : Controller 클래스 한정으로 API 동작 시 Req/Res 로그 작성하게 처리
+    //
 
     //주문 생성
     @PostMapping
     public ResponseEntity<OrderResponseDto> createOrder(@RequestBody OrderRequestDto requestDto) {
         OrderResponseDto orderResponseDto = orderService.createOrder(requestDto);
-        return new ResponseEntity<>(orderResponseDto, HttpStatus.CREATED);
+//        return new ResponseEntity<>(orderResponseDto, HttpStatus.CREATED);
+        return ResponseEntity.ok(orderResponseDto); // 성공은 200
     }
+    // 200 OK, 40X, 500 SERVER_ERROR
 
     //주문 조회 (단일)
     @GetMapping("/{id}")
-    public ResponseEntity<OrderResponseDto> getOrder(@PathVariable("id") Integer orderId) {
+    public ResponseEntity<OrderResponseDto> getOrder(@PathVariable("id") Long orderId) {
         OrderResponseDto orderResponseDto = orderService.getOrder(orderId);
         return new ResponseEntity<>(orderResponseDto, HttpStatus.OK);
     }
@@ -41,15 +44,13 @@ public class OrderController {
 
     //주문 취소
     @DeleteMapping("/{id}")
-    public ResponseEntity<OrderResponseDto> deleteOrder(@PathVariable("id") Integer orderId) {
+    public ResponseEntity<OrderResponseDto> deleteOrder(@PathVariable("id") Long orderId) {
         orderService.cancelOrder(orderId);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
     //주문 수정
-//     Put VS Patch
-//     put은 리소스 전체 patch는 부분적인 수정 -> 주문수정은 부분적일수도 전체적일수도? 그러면 put이 맞지않나..?
     @PutMapping({"/id"})
-    public ResponseEntity<OrderResponseDto> updateOrder(@PathVariable("id") Integer orderId, @RequestBody OrderRequestDto orderRequestDto) {
+    public ResponseEntity<OrderResponseDto> updateOrder(@PathVariable("id") Long orderId, @RequestBody OrderRequestDto orderRequestDto) {
         OrderResponseDto updatedOrder = orderService.updateOrder(orderId, orderRequestDto);
         return new ResponseEntity<>(updatedOrder, HttpStatus.OK);
     }

@@ -9,8 +9,8 @@ import java.util.List;
 public interface OrderService {
 
     OrderResponseDto createOrder(OrderRequestDto requestDto);
-    void cancelOrder(Integer orderId);
-    OrderResponseDto getOrder(Integer orderId);
+    void cancelOrder(Long orderId);
+    OrderResponseDto getOrder(Long orderId);
     List<OrderResponseDto> getAllOrders();
-    OrderResponseDto updateOrder(Integer orderId, OrderRequestDto requestDto);
+    OrderResponseDto updateOrder(Long orderId, OrderRequestDto requestDto);
 }

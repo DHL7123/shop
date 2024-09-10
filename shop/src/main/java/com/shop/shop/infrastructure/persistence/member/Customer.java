@@ -20,7 +20,7 @@ import static  com.shop.shop.infrastructure.constant.StatusConstants.ACTIVE;
 public class Customer {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer pk; // primary key
+    private Long pk; // primary key
     @Column
     private String accountCode; // 계정 코드
     @Column

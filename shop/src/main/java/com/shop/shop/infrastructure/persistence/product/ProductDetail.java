@@ -15,7 +15,7 @@ public class ProductDetail {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer pk; // primary key
+    private Long pk; // primary key
     @OneToOne
     @JoinColumn(name = "product_id")
     private Product product;
@@ -24,8 +24,6 @@ public class ProductDetail {
     @Column
     private LocalDateTime registeredDate;
     @Column
-    private Integer soldout;
-    @Column
-    private Integer viewCount;
+    private Long viewCount;
 
 }

@@ -18,7 +18,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 // * Spring Security 활성화 및 웹 보안 설정 자동 구성 및 필터에 스프링 시큐리티가 동작되도록 선언하는 어노테이션
 // * 필터 동작 확인을 위해 디버그 모드 true 설정
-@EnableWebSecurity(debug = true)
+@EnableWebSecurity//(debug = true)
 // * @Secured 등 권한 관련 어노테이션 사용 처리를 위한 어노테이션
 @EnableGlobalMethodSecurity(securedEnabled = true, prePostEnabled = true)
 public class SecurityConfig extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
@@ -50,7 +50,6 @@ public class SecurityConfig extends SecurityConfigurerAdapter<DefaultSecurityFil
                 .anyRequest().permitAll()
                 .and()
                 // * cors 필터 추가
-                // * cors 필터 들어가보세요
                 .addFilter(corsConfig.corsFilter())
                 // * addFilterBefore(A, B) : B 필터보다 A 필터가 먼저 동작하게 함.
                 // * 필터에 관한 상세한 설명은 추가 작성

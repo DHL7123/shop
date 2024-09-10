@@ -11,16 +11,16 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class OrderResponseDto {
 
-    private Integer orderId;
-    private Integer productId;
-    private Integer quantity;
-    private Customer customer;
+    private Long orderId;
+    private Long productId;
+    private Long quantity;
+    private Long customerPk;
 
     public OrderResponseDto(Orders order) {
         this.orderId = order.getPk();
         this.productId = order.getProductId();
         this.quantity = order.getQuantity();
-        this.customer = order.getCustomer();
+        this.customerPk = order.getCustomer().getPk();
     }
 }
 

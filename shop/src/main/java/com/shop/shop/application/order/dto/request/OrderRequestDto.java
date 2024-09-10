@@ -10,8 +10,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class OrderRequestDto {
 
-    private Integer productId;
-    private Integer quantity;
-    private Customer customer;
+    private Long productId;
+    private Long quantity;
+    private Long customerPk;
 
 }
