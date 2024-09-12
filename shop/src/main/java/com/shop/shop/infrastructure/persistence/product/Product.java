@@ -11,35 +11,45 @@ import javax.persistence.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Product {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long pk; // primary key
-    @Column
+    private Long id;
+
+    @Column(nullable = false)
     private String name;
-    @Column
-    private String imageUrl;
-    @Column
-    private Long stockQuantity;
-    @Column
-    private Integer soldout;
-    @Column
-    private String category;
-    @Column
-    private Long price;
-    @Column
+
+    @Column(nullable = false)
+    private String description;
+
+    @Column(nullable = false)
+    private Long stockQuantity; // 재고는 0 이상이어야 함
+
+    @Column(nullable = false)
+    private Long price; // 가격은 0보다 커야 함
+
+    @Column(nullable = false)
     private String shipping;
 
     // 재고 감소
-    public void decreaseStockQuantity(Long StockQuantity) {
-        if(this.stockQuantity < StockQuantity){
-            throw new IllegalArgumentException("Stock quantity should be greater than stock quantity");
+    public void decreaseStockQuantity(Long stockQuantity) {
+        validateStockQuantity(stockQuantity);
+        if (this.stockQuantity < stockQuantity) {
+            throw new IllegalArgumentException("재고 수량이 부족합니다.");
         }
-        this.stockQuantity -= StockQuantity;
+        this.stockQuantity -= stockQuantity;
     }
+
     // 재고 증가
-    public void increaseStock(Long StockQuantity) {
-        this.stockQuantity += StockQuantity;
+    public void increaseStock(Long stockQuantity) {
+        validateStockQuantity(stockQuantity);
+        this.stockQuantity += stockQuantity;
     }
 
+    // 유효성 검사
+    private void validateStockQuantity(Long stockQuantity) {
+        if (stockQuantity == null || stockQuantity <= 0) {
+            throw new IllegalArgumentException("재고 수량은 0보다 커야 합니다.");
+        }
+    }
 }
-

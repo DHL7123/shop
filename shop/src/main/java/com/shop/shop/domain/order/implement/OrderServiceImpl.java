@@ -3,6 +3,7 @@ package com.shop.shop.domain.order.implement;
 import com.shop.shop.application.order.dto.request.OrderRequestDto;
 import com.shop.shop.application.order.dto.response.OrderResponseDto;
 import com.shop.shop.domain.order.OrderService;
+import com.shop.shop.infrastructure.exception.ExceptionList;
 import com.shop.shop.infrastructure.exception.ServiceException;
 import com.shop.shop.infrastructure.persistence.member.Customer;
 import com.shop.shop.infrastructure.persistence.member.CustomerRepository;
@@ -28,85 +29,128 @@ public class OrderServiceImpl implements OrderService {
     private final ProductRepository productRepository;
 
 
-    @Transactional // 주문이 한 번에 여러개 들어온다면? 그 중 하나 DB 접속 실패하면 전부 다 깨지는데 이거 어케 처리할거임?
-    @Override
-    public OrderResponseDto createOrder(OrderRequestDto requestDto) {
-
-        Product product = productRepository.findById(requestDto.getProductId())
-                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
-        product.decreaseStockQuantity(requestDto.getQuantity());
-        productRepository.save(product);
-
-        // customerPk를 사용해 Customer 엔티티 조회
-        Customer customer = customerRepository.findById(requestDto.getCustomerPk())
-                .orElseThrow(() -> new IllegalArgumentException("Customer not found"));
-            // 유효성 검사 -> ServiceException 처리
-//        try {
-//            Orders order = Orders.create(requestDto.getProductId(),requestDto.getQuantity(), requestDto.getCustomer());
-//            orderRepository.save(order);
-//        } catch (ServiceException e) {
-//            log.info("유효성 검사에 실패하였습니다.");
-//        } catch (Exception e) {
-//            log.error("DB connection error");
-//        }
-        // 실제 Orders 엔티티 생성 시 Customer 객체 전달
-
-        Orders order = new Orders(requestDto.getProductId(), requestDto.getQuantity(), customer);
-        orderRepository.save(order);
-
-        return new OrderResponseDto(order);
-    }
     @Transactional
     @Override
-    public void cancelOrder(Long orderId) {
-        Orders order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
-        Product product = productRepository.findById(order.getProductId())
-                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+    public OrderResponseDto createOrder(OrderRequestDto requestDto) {
+        // 유효성 검사
+        validateOrderRequest(requestDto);
 
-        product.increaseStock(order.getQuantity());  // 재고 증가
-        productRepository.save(product);  // 상품 정보 업데이트
+        try {
+            // 상품 유효성 검사
+            Product product = productRepository.findById(requestDto.getProductId())
+                    .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_DATA));
 
-        orderRepository.delete(order);  // 주문 삭제
+            // 재고 유효성 검사
+            if (product.getStockQuantity() < requestDto.getQuantity()) {
+                throw new ServiceException(ExceptionList.BAD_REQUEST);
+            }
+
+            // 재고 감소
+            product.decreaseStockQuantity(requestDto.getQuantity());
+            productRepository.save(product);
+
+            // 고객 유효성 검사
+            Customer customer = customerRepository.findById(requestDto.getCustomerPk())
+                    .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_CUSTOMER_ACCOUNT));
+
+            // 주문 생성
+            Orders order = Orders.create(requestDto.getProductId(), requestDto.getQuantity(), customer);
+            order.setTotalPrice(calculateTotalPrice(product, requestDto.getQuantity()));  // 총 가격 계산
+
+            orderRepository.save(order);
+
+            return new OrderResponseDto(order);
+
+        } catch (ServiceException e) {
+            log.info("유효성 검사에 실패하였습니다: {}", e.getMessage());
+            throw e;
+
+        } catch (Exception e) {
+            log.error("DB connection error: {}", e.getMessage());
+            throw new ServiceException(ExceptionList.INTERNAL_SERVER_ERROR);
+        }
     }
+
+    // 유효성 검사 메서드
+    private void validateOrderRequest(OrderRequestDto requestDto) {
+        if (requestDto.getProductId() == null || requestDto.getProductId() <= 0) {
+            throw new ServiceException(ExceptionList.BAD_REQUEST);
+        }
+
+        if (requestDto.getQuantity() == null || requestDto.getQuantity() <= 0) {
+            throw new ServiceException(ExceptionList.BAD_REQUEST);
+        }
+
+        if (requestDto.getCustomerPk() == null || requestDto.getCustomerPk() <= 0) {
+            throw new ServiceException(ExceptionList.NOT_EXIST_CUSTOMER_ACCOUNT);
+        }
+    }
+
+    // 총 가격 계산 메서드
+    private Long calculateTotalPrice(Product product, Long quantity) {
+        if (quantity <= 0) {
+            throw new ServiceException(ExceptionList.BAD_REQUEST);
+        }
+
+        return product.getPrice() * quantity;
+    }
+
+
     @Transactional(readOnly = true)
     @Override
     public OrderResponseDto getOrder(Long orderId) {
         Orders order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+                .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_DATA));  // 주문이 없을 경우
         return new OrderResponseDto(order);
     }
-    @Override
+
     @Transactional(readOnly = true)
-    public List<OrderResponseDto> getAllOrders() { // 디테일 추가 -> 일자별 필터링이 필요하다. 예를들어 year/month 파라미터를 받아서 그 기간 안에있는거만 조회되도록
-        List<Orders> orders = orderRepository.findAllWithCustomer(); // -> QueryDsl Projections.constructor 고민해보기 생성자 매핑 가능
-        return orders.stream().map(OrderResponseDto::new).collect(Collectors.toList()); // 데이터 주기
+    @Override
+    public List<OrderResponseDto> getAllOrders() {
+        List<Orders> orders = orderRepository.findAllWithCustomer();  // 주문 목록 조회
+        if (orders.isEmpty()) {
+            throw new ServiceException(ExceptionList.NOT_EXIST_DATA);  // 데이터가 없을 경우
+        }
+        return orders.stream().map(OrderResponseDto::new).collect(Collectors.toList());
     }
+
     @Transactional
     @Override
     public OrderResponseDto updateOrder(Long orderId, OrderRequestDto requestDto) {
-
-        // 기존 주문
         Orders existingOrder = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
-        // 기존 주문 상품
+                .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_DATA));  // 주문이 없을 경우
+
         Product product = productRepository.findById(existingOrder.getProductId())
-                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
-        // 기존 주문 수량과 새로운 수량 차이
+                .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_DATA));  // 상품이 없을 경우
+
         Long quantityDiff = existingOrder.getQuantity() - requestDto.getQuantity();
 
+        // 재고 처리 로직
         if (quantityDiff > 0) {
-            // 수량이 증가 할 경우
             product.decreaseStockQuantity(quantityDiff);
-        }else if(quantityDiff < 0) {
-            // 수량이 감소 할 경우
+        } else if (quantityDiff < 0) {
             product.increaseStock(-quantityDiff);
         }
-        productRepository.save(product);
+        productRepository.save(product);  // 재고 변경 사항 저장
 
         existingOrder.setQuantity(requestDto.getQuantity());
-        orderRepository.save(existingOrder);
+        orderRepository.save(existingOrder);  // 주문 수정
 
         return new OrderResponseDto(existingOrder);
+    }
+
+    @Transactional
+    @Override
+    public void cancelOrder(Long orderId) {
+        Orders order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_DATA));  // 주문이 없을 경우
+
+        Product product = productRepository.findById(order.getProductId())
+                .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_DATA));  // 상품이 없을 경우
+
+        product.increaseStock(order.getQuantity());  // 주문 취소 시 재고 복구
+        productRepository.save(product);  // 재고 저장
+
+        orderRepository.delete(order);  // 주문 삭제
     }
 }

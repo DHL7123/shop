@@ -11,4 +11,5 @@ public class ServiceException extends RuntimeException{
         super(exceptionList.getMessage());
         this.code = exceptionList.getCode();
     }
+
 }
