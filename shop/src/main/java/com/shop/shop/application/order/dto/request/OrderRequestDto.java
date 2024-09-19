@@ -12,6 +12,7 @@ public class OrderRequestDto {
 
     private Long productId;
     private Long quantity;
-    private Long customerPk;
+    private String customerId;
+    private String token;
 
 }

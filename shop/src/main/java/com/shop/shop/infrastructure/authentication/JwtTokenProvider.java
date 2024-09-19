@@ -108,4 +108,18 @@ public class JwtTokenProvider {
             return e.getClaims();
         }
     }
+
+
+    // 토큰에서 CustomerId 추출
+    public String getCustomerIdFromToken(String token) {
+        // Claims 객체로부터 토큰의 Payload 부분 추출
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(this.key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        // sub 필드에서 customerId 추출
+        return claims.getSubject(); // sub 필드에 저장된 값을 반환 (customerId)
+    }
 }

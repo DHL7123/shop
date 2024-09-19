@@ -14,13 +14,13 @@ public class OrderResponseDto {
     private Long orderId;
     private Long productId;
     private Long quantity;
-    private Long customerPk;
+    private String customerId;
 
     public OrderResponseDto(Orders order) {
         this.orderId = order.getPk();
         this.productId = order.getProductId();
         this.quantity = order.getQuantity();
-        this.customerPk = order.getCustomer().getPk();
+        this.customerId = order.getCustomer().getCustomerId();
     }
 }
 

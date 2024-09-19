@@ -1,6 +1,7 @@
 package com.shop.shop.infrastructure.persistence.order;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.shop.shop.infrastructure.constant.OrderStatus;
 import com.shop.shop.infrastructure.persistence.member.Customer;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -25,37 +26,37 @@ public class Orders {
     @JoinColumn(name = "customer_pk")
     private Customer customer;
 
-    @Column(nullable = false)
+    @Column
     private Long productId;
 
-    @Column(nullable = false)
+    @Column
     private String orderNumber;
 
-    @Column(nullable = false)
+    @Column
     private LocalDateTime orderDate;
 
-    @Column(nullable = false)
-    private String status; // ORDER, SHIPPING, 완료, CANCEL 등
+    @Enumerated(EnumType.STRING)  // 문자열로 저장
+    private OrderStatus status; // ORDER, SHIPPING, 완료, CANCEL 등
 
-    @Column(nullable = false)
+    @Column
     private String paymentMethod;
 
-    @Column(nullable = false)
+    @Column
     private String name;
 
-    @Column(nullable = false)
+    @Column
     private String zipCode;
 
-    @Column(nullable = false)
+    @Column
     private String address;
 
-    @Column(nullable = false)
+    @Column
     private String phone;
 
-    @Column(nullable = false)
+    @Column
     private Long quantity; // 수량은 0보다 커야 함
 
-    @Column(nullable = false)
+    @Column
     private Long totalPrice; // 총 가격은 0보다 커야 함
 
     @Column
@@ -68,7 +69,9 @@ public class Orders {
     // 주문 생성 메서드
     public static Orders create(Long productId, Long quantity, Customer customer) {
         validateOrder(productId, quantity);
-        return new Orders(productId, quantity, customer);
+        Orders order = new Orders(productId, quantity, customer);
+        order.setStatus(OrderStatus.PENDING);
+        return order;
     }
 
     // 생성자
@@ -78,7 +81,12 @@ public class Orders {
         this.quantity = quantity;
         this.customer = customer;
         this.orderDate = LocalDateTime.now();
-        this.status = "PENDING";
+        this.status = OrderStatus.PENDING;
+    }
+
+    // 주문 상태 변경 메서드
+    public void changeStatus(OrderStatus newStatus) {
+        this.status = newStatus;
     }
 
     // 유효성 검사

@@ -3,6 +3,8 @@ package com.shop.shop.domain.order.implement;
 import com.shop.shop.application.order.dto.request.OrderRequestDto;
 import com.shop.shop.application.order.dto.response.OrderResponseDto;
 import com.shop.shop.domain.order.OrderService;
+import com.shop.shop.infrastructure.authentication.JwtTokenProvider;
+import com.shop.shop.infrastructure.constant.OrderStatus;
 import com.shop.shop.infrastructure.exception.ExceptionList;
 import com.shop.shop.infrastructure.exception.ServiceException;
 import com.shop.shop.infrastructure.persistence.member.Customer;
@@ -13,6 +15,8 @@ import com.shop.shop.infrastructure.persistence.product.Product;
 import com.shop.shop.infrastructure.persistence.product.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,11 +31,16 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final CustomerRepository customerRepository;
     private final ProductRepository productRepository;
-
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Transactional
     @Override
     public OrderResponseDto createOrder(OrderRequestDto requestDto) {
+        // JWT 토큰 유효성 검사
+        if (!jwtTokenProvider.validateToken(requestDto.getToken())) {
+            throw new ServiceException(ExceptionList.UNSUPPORTED_TOKEN);
+        }
+
         // 유효성 검사
         validateOrderRequest(requestDto);
 
@@ -50,7 +59,8 @@ public class OrderServiceImpl implements OrderService {
             productRepository.save(product);
 
             // 고객 유효성 검사
-            Customer customer = customerRepository.findById(requestDto.getCustomerPk())
+            String customerId = jwtTokenProvider.getCustomerIdFromToken(requestDto.getToken());
+            Customer customer = customerRepository.findByCustomerId(customerId)
                     .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_CUSTOMER_ACCOUNT));
 
             // 주문 생성
@@ -81,7 +91,7 @@ public class OrderServiceImpl implements OrderService {
             throw new ServiceException(ExceptionList.BAD_REQUEST);
         }
 
-        if (requestDto.getCustomerPk() == null || requestDto.getCustomerPk() <= 0) {
+        if (requestDto.getCustomerId() == null) {
             throw new ServiceException(ExceptionList.NOT_EXIST_CUSTOMER_ACCOUNT);
         }
     }
@@ -98,7 +108,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Transactional(readOnly = true)
     @Override
+    @Cacheable(value = "orders", key = "#orderId")
     public OrderResponseDto getOrder(Long orderId) {
+
         Orders order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_DATA));  // 주문이 없을 경우
         return new OrderResponseDto(order);
@@ -116,12 +128,24 @@ public class OrderServiceImpl implements OrderService {
 
     @Transactional
     @Override
+    @CacheEvict(value = "orders", key = "#orderId")
     public OrderResponseDto updateOrder(Long orderId, OrderRequestDto requestDto) {
+        // JWT 토큰 유효성 검사
+        if (!jwtTokenProvider.validateToken(requestDto.getToken())) {
+            throw new ServiceException(ExceptionList.UNSUPPORTED_TOKEN);
+        }
+
         Orders existingOrder = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_DATA));  // 주문이 없을 경우
 
         Product product = productRepository.findById(existingOrder.getProductId())
                 .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_DATA));  // 상품이 없을 경우
+
+        // 고객 유효성 검사
+        String customerId = jwtTokenProvider.getCustomerIdFromToken(requestDto.getToken());
+        Customer customer = customerRepository.findByCustomerId(customerId)
+                .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_CUSTOMER_ACCOUNT));
+
 
         Long quantityDiff = existingOrder.getQuantity() - requestDto.getQuantity();
 
@@ -141,6 +165,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Transactional
     @Override
+    @CacheEvict(value = "orders", key = "#orderId")
     public void cancelOrder(Long orderId) {
         Orders order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_DATA));  // 주문이 없을 경우
@@ -151,6 +176,7 @@ public class OrderServiceImpl implements OrderService {
         product.increaseStock(order.getQuantity());  // 주문 취소 시 재고 복구
         productRepository.save(product);  // 재고 저장
 
-        orderRepository.delete(order);  // 주문 삭제
+        order.changeStatus(OrderStatus.CANCELLED);  // 주문 상태를 CANCELLED로 변경
+        orderRepository.save(order);  // 주문 상태 업데이트
     }
 }

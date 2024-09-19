@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface OrderRepository extends JpaRepository<Orders, Long> {
+public interface OrderRepository extends JpaRepository<Orders, Long>{
 
     @Query("SELECT o FROM Orders o JOIN FETCH o.customer")
     List<Orders> findAllWithCustomer();
