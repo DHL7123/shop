@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -161,6 +162,16 @@ public class OrderServiceImpl implements OrderService {
         orderRepository.save(existingOrder);  // 주문 수정
 
         return new OrderResponseDto(existingOrder);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<OrderResponseDto> getOrdersWithConditions(Long customerId, LocalDate startDate, LocalDate endDate, OrderStatus status) {
+        List<Orders> orders = orderRepository.findOrdersWithConditions(customerId, startDate, endDate, status);
+        if (orders.isEmpty()) {
+            throw new ServiceException(ExceptionList.NOT_EXIST_DATA);
+        }
+        return orders.stream().map(OrderResponseDto::new).collect(Collectors.toList());
     }
 
     @Transactional
