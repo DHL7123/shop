@@ -1,5 +1,6 @@
 package com.shop.shop.domain.order.implement;
 
+import com.shop.shop.application.order.dto.request.OrderConditionDto;
 import com.shop.shop.application.order.dto.request.OrderRequestDto;
 import com.shop.shop.application.order.dto.response.OrderResponseDto;
 import com.shop.shop.domain.order.OrderService;
@@ -21,7 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,12 +31,26 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
+
     private final OrderRepository orderRepository;
     private final CustomerRepository customerRepository;
     private final ProductRepository productRepository;
     private final JwtTokenProvider jwtTokenProvider;
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public List<OrderResponseDto> createMultipleOrders(List<OrderRequestDto> orderRequestDtos) {
+        List<OrderResponseDto> responseDtos = new ArrayList<>();
+
+        for (OrderRequestDto requestDto : orderRequestDtos) {
+            OrderResponseDto responseDto = createOrder(requestDto);
+            responseDtos.add(responseDto);
+        }
+
+        return responseDtos;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public OrderResponseDto createOrder(OrderRequestDto requestDto) {
         // JWT 토큰 유효성 검사
@@ -46,11 +62,10 @@ public class OrderServiceImpl implements OrderService {
         validateOrderRequest(requestDto);
 
         try {
-            // 상품 유효성 검사
+            // 상품 유효성 및 재고 검사
             Product product = productRepository.findById(requestDto.getProductId())
                     .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_DATA));
 
-            // 재고 유효성 검사
             if (product.getStockQuantity() < requestDto.getQuantity()) {
                 throw new ServiceException(ExceptionList.BAD_REQUEST);
             }
@@ -64,22 +79,33 @@ public class OrderServiceImpl implements OrderService {
             Customer customer = customerRepository.findByCustomerId(customerId)
                     .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_CUSTOMER_ACCOUNT));
 
-            // 주문 생성
-            Orders order = Orders.create(requestDto.getProductId(), requestDto.getQuantity(), customer);
-            order.setTotalPrice(calculateTotalPrice(product, requestDto.getQuantity()));  // 총 가격 계산
-
+            // 주문 생성 비즈니스 로직을 서비스에서 처리
+            Orders order = createOrderEntity(requestDto, customer, product);
             orderRepository.save(order);
 
             return new OrderResponseDto(order);
 
         } catch (ServiceException e) {
-            log.info("유효성 검사에 실패하였습니다: {}", e.getMessage());
+            log.info("주문 생성 중 유효성 검사 실패: {}", e.getMessage());
             throw e;
 
         } catch (Exception e) {
-            log.error("DB connection error: {}", e.getMessage());
+            log.error("DB 처리 오류: {}", e.getMessage());
             throw new ServiceException(ExceptionList.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    // 주문 생성 비즈니스 로직
+    private Orders createOrderEntity(OrderRequestDto requestDto, Customer customer, Product product) {
+        validateOrder(requestDto.getProductId(), requestDto.getQuantity());
+        Orders order = new Orders();
+        order.setProductId(requestDto.getProductId());
+        order.setQuantity(requestDto.getQuantity());
+        order.setCustomer(customer);
+        order.setOrderDate(LocalDateTime.now());
+        order.setStatus(OrderStatus.PENDING);
+        order.setTotalPrice(calculateTotalPrice(product, requestDto.getQuantity()));
+        return order;
     }
 
     // 유효성 검사 메서드
@@ -102,7 +128,6 @@ public class OrderServiceImpl implements OrderService {
         if (quantity <= 0) {
             throw new ServiceException(ExceptionList.BAD_REQUEST);
         }
-
         return product.getPrice() * quantity;
     }
 
@@ -166,11 +191,18 @@ public class OrderServiceImpl implements OrderService {
 
     @Transactional(readOnly = true)
     @Override
-    public List<OrderResponseDto> getOrdersWithConditions(Long customerId, LocalDate startDate, LocalDate endDate, OrderStatus status) {
-        List<Orders> orders = orderRepository.findOrdersWithConditions(customerId, startDate, endDate, status);
+    public List<OrderResponseDto> getOrdersWithConditions(OrderConditionDto conditionDto) {
+        List<Orders> orders = orderRepository.findOrdersWithConditions(
+                conditionDto.getCustomerId(),
+                conditionDto.getStartDate(),
+                conditionDto.getEndDate(),
+                conditionDto.getStatus()
+        );
+
         if (orders.isEmpty()) {
             throw new ServiceException(ExceptionList.NOT_EXIST_DATA);
         }
+
         return orders.stream().map(OrderResponseDto::new).collect(Collectors.toList());
     }
 
@@ -187,7 +219,17 @@ public class OrderServiceImpl implements OrderService {
         product.increaseStock(order.getQuantity());  // 주문 취소 시 재고 복구
         productRepository.save(product);  // 재고 저장
 
-        order.changeStatus(OrderStatus.CANCELLED);  // 주문 상태를 CANCELLED로 변경
+        order.setStatus(OrderStatus.CANCELLED);  // 주문 상태를 CANCELLED로 변경
         orderRepository.save(order);  // 주문 상태 업데이트
+    }
+
+    // 주문 유효성 검사 메서드
+    private void validateOrder(Long productId, Long quantity) {
+        if (productId == null || productId <= 0) {
+            throw new IllegalArgumentException("유효하지 않은 제품 ID입니다.");
+        }
+        if (quantity == null || quantity <= 0) {
+            throw new IllegalArgumentException("수량은 0보다 커야 합니다.");
+        }
     }
 }

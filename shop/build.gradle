@@ -2,21 +2,18 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '2.7.3'
 	id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+	id "com.ewerk.gradle.plugins.querydsl" version "1.0.10"
 }
 
 group = 'com'
 version = '0.0.1-SNAPSHOT'
-
-java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(17)
-	}
-}
+sourceCompatibility = '17'
 
 configurations {
 	compileOnly {
 		extendsFrom annotationProcessor
 	}
+	querydsl.extendsFrom compileClasspath
 }
 
 repositories {
@@ -29,12 +26,13 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-aop'
-	implementation 'com.querydsl:querydsl-jpa:5.0.0'
 
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
-	annotationProcessor 'com.querydsl:querydsl-apt:5.0.0'
 
+	implementation 'com.querydsl:querydsl-jpa:5.0.0'
+	implementation 'com.querydsl:querydsl-apt:5.0.0'
+	implementation 'com.querydsl:querydsl-core:5.0.0'
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
@@ -48,20 +46,26 @@ dependencies {
 	implementation 'com.github.ulisesbocchio:jasypt-spring-boot-starter:3.0.3'
 }
 
-tasks.withType(JavaCompile) {
-	options.annotationProcessorPath = configurations.annotationProcessor
+// Querydsl 설정부
+def querydslDir = 'src/main/generated'
+
+querydsl {
+	jpa = true //JPA 사용여부 설정
+	querydslSourcesDir = querydslDir
 }
 
+// java source set 에 querydsl QClass 위치 추가
 sourceSets {
-	main {
-		java {
-			srcDirs = ['src/main/java', 'build/generated/sources/annotationProcessor/java/main']
-		}
-	}
+	main.java.srcDir querydslDir// 빌드시 컴파일이 필요한 소스위치
 }
 
-configurations {
-	querydsl.extendsFrom compileClasspath
+compileQuerydsl{
+	options.annotationProcessorPath = configurations.querydsl
+}
+
+// gradle clean 시에 QClass 디렉토리 삭제
+clean {
+	delete file(querydslDir)
 }
 
 tasks.named('test') {

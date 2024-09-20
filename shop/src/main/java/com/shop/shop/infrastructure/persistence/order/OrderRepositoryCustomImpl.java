@@ -8,7 +8,6 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.util.List;
 
-import static com.shop.shop.infrastructure.persistence.order.QOrders.orders;
 
 @Repository
 public class OrderRepositoryCustomImpl implements OrderRepositoryCustom {
@@ -20,23 +19,25 @@ public class OrderRepositoryCustomImpl implements OrderRepositoryCustom {
     }
 
     @Override
-    public List<Orders> findOrdersWithConditions(Long customerId, LocalDate startDate, LocalDate endDate, OrderStatus status) {
+    public List<Orders> findOrdersWithConditions(String customerId, LocalDate startDate, LocalDate endDate, OrderStatus status) {
+        QOrders qOrder = QOrders.orders;
+
         BooleanBuilder builder = new BooleanBuilder();
 
         // 필수 조건: 고객 ID
-        builder.and(orders.customer.id.eq(customerId));
+        builder.and(qOrder.customer.customerId.eq(customerId));
 
         // 선택적 조건: 날짜
         if (startDate != null && endDate != null) {
-            builder.and(orders.orderDate.between(startDate.atStartOfDay(), endDate.atTime(23, 59, 59)));
+            builder.and(qOrder.orderDate.between(startDate.atStartOfDay(), endDate.atTime(23, 59, 59)));
         }
 
         // 선택적 조건: 주문 상태
         if (status != null) {
-            builder.and(orders.status.eq(status));
+            builder.and(qOrder.status.eq(status));
         }
 
-        return queryFactory.selectFrom(orders)
+        return queryFactory.selectFrom(qOrder)
                 .where(builder)
                 .fetch();
     }

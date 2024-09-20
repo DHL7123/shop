@@ -1,5 +1,6 @@
 package com.shop.shop.domain.order;
 
+import com.shop.shop.application.order.dto.request.OrderConditionDto;
 import com.shop.shop.application.order.dto.request.OrderRequestDto;
 import com.shop.shop.application.order.dto.response.OrderResponseDto;
 import com.shop.shop.infrastructure.constant.OrderStatus;
@@ -15,5 +16,6 @@ public interface OrderService {
     OrderResponseDto getOrder(Long orderId);
     List<OrderResponseDto> getAllOrders();
     OrderResponseDto updateOrder(Long orderId, OrderRequestDto requestDto);
-    List<OrderResponseDto> getOrdersWithConditions(Long customerId, LocalDate startDate, LocalDate endDate, OrderStatus status);
+    List<OrderResponseDto> getOrdersWithConditions(OrderConditionDto conditionDto);
+    List<OrderResponseDto> createMultipleOrders(List<OrderRequestDto> orderRequestDto);
 }
