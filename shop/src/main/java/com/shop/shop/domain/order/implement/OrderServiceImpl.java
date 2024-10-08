@@ -18,6 +18,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,17 +27,25 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+import static com.shop.shop.infrastructure.constant.CacheConstants.GET_ORDER_CACHE;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
 
+
     private final OrderRepository orderRepository;
     private final CustomerRepository customerRepository;
     private final ProductRepository productRepository;
     private final JwtTokenProvider jwtTokenProvider;
+    private final RedisTemplate<String, Object> redisTemplate;
+
+    private static final String ORDER_PREFIX = "order:";
+    private static final long ORDER_CACHE_TTL = 10 * 60;
 
     @Transactional(rollbackFor = Exception.class)
     @Override
@@ -83,6 +93,9 @@ public class OrderServiceImpl implements OrderService {
             Orders order = createOrderEntity(requestDto, customer, product);
             orderRepository.save(order);
 
+            // 캐시 갱신
+            updateOrderCache(order);
+
             return new OrderResponseDto(order);
 
         } catch (ServiceException e) {
@@ -97,7 +110,7 @@ public class OrderServiceImpl implements OrderService {
 
     // 주문 생성 비즈니스 로직
     private Orders createOrderEntity(OrderRequestDto requestDto, Customer customer, Product product) {
-        validateOrder(requestDto.getProductId(), requestDto.getQuantity());
+        validateOrderRequest(requestDto);
         Orders order = new Orders();
         order.setProductId(requestDto.getProductId());
         order.setQuantity(requestDto.getQuantity());
@@ -134,13 +147,29 @@ public class OrderServiceImpl implements OrderService {
 
     @Transactional(readOnly = true)
     @Override
-    @Cacheable(value = "orders", key = "#orderId")
+    @Cacheable(GET_ORDER_CACHE)
     public OrderResponseDto getOrder(Long orderId) {
+        log.info("히또!!");
+//        String cacheKey = ORDER_PREFIX + orderId;
+//        ValueOperations<String, Object> opsForValue = redisTemplate.opsForValue();
 
+        // Redis 캐시에서 조회
+//        OrderResponseDto cachedOrder = (OrderResponseDto) opsForValue.get(cacheKey);
+//        if (cachedOrder != null) {
+//            return cachedOrder;
+//        }
+
+        // Redis에 없으면 DB에서 조회
         Orders order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_DATA));  // 주문이 없을 경우
-        return new OrderResponseDto(order);
+                .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_DATA));
+        OrderResponseDto orderResponseDto = new OrderResponseDto(order);
+
+        // Redis에 캐싱
+//        opsForValue.set(cacheKey, orderResponseDto, ORDER_CACHE_TTL, TimeUnit.SECONDS);
+
+        return orderResponseDto;
     }
+
 
     @Transactional(readOnly = true)
     @Override
@@ -186,7 +215,16 @@ public class OrderServiceImpl implements OrderService {
         existingOrder.setQuantity(requestDto.getQuantity());
         orderRepository.save(existingOrder);  // 주문 수정
 
+        // 캐시 갱신
+        updateOrderCache(existingOrder);
+
         return new OrderResponseDto(existingOrder);
+    }
+
+    // 주문 캐시 갱신 메서드
+    private void updateOrderCache(Orders order) {
+        String cacheKey = ORDER_PREFIX + order.getPk();
+        redisTemplate.opsForValue().set(cacheKey, new OrderResponseDto(order), ORDER_CACHE_TTL, TimeUnit.SECONDS);
     }
 
     @Transactional(readOnly = true)
@@ -208,7 +246,6 @@ public class OrderServiceImpl implements OrderService {
 
     @Transactional
     @Override
-    @CacheEvict(value = "orders", key = "#orderId")
     public void cancelOrder(Long orderId) {
         Orders order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_DATA));  // 주문이 없을 경우
@@ -221,15 +258,9 @@ public class OrderServiceImpl implements OrderService {
 
         order.setStatus(OrderStatus.CANCELLED);  // 주문 상태를 CANCELLED로 변경
         orderRepository.save(order);  // 주문 상태 업데이트
-    }
 
-    // 주문 유효성 검사 메서드
-    private void validateOrder(Long productId, Long quantity) {
-        if (productId == null || productId <= 0) {
-            throw new IllegalArgumentException("유효하지 않은 제품 ID입니다.");
-        }
-        if (quantity == null || quantity <= 0) {
-            throw new IllegalArgumentException("수량은 0보다 커야 합니다.");
-        }
+        // 캐시 삭제
+        String cacheKey = ORDER_PREFIX + orderId;
+        redisTemplate.delete(cacheKey);
     }
 }

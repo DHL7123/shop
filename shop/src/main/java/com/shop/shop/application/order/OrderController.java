@@ -4,14 +4,11 @@ import com.shop.shop.application.order.dto.request.OrderConditionDto;
 import com.shop.shop.application.order.dto.request.OrderRequestDto;
 import com.shop.shop.application.order.dto.response.OrderResponseDto;
 import com.shop.shop.domain.order.OrderService;
-import com.shop.shop.infrastructure.constant.OrderStatus;
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -20,21 +17,19 @@ import java.util.List;
 public class OrderController {
 
     private final OrderService orderService;
-    // Request/Response Log -> AOP : Controller 클래스 한정으로 API 동작 시 Req/Res 로그 작성하게 처리
-    //
 
     //주문 생성
-    @PostMapping
+    @PostMapping("/single")
     public ResponseEntity<OrderResponseDto> createOrder(@RequestBody OrderRequestDto requestDto) {
         OrderResponseDto orderResponseDto = orderService.createOrder(requestDto);
-//        return new ResponseEntity<>(orderResponseDto, HttpStatus.CREATED);
-        return ResponseEntity.ok(orderResponseDto); // 성공은 200
+        return ResponseEntity.ok(orderResponseDto);
     }
+
     // 여러 주문 생성
-    @PostMapping
+    @PostMapping("/multiple")
     public ResponseEntity<List<OrderResponseDto>> createMultipleOrders(@RequestBody List<OrderRequestDto> requestDto) {
         List<OrderResponseDto> orderResponseDtos = orderService.createMultipleOrders(requestDto);
-        return ResponseEntity.ok(orderResponseDtos); // 200 OK로 응답
+        return ResponseEntity.ok(orderResponseDtos);
     }
 
     //주문 조회 (단일)
