@@ -22,8 +22,6 @@ public class QProductDetail extends EntityPathBase<ProductDetail> {
 
     public static final QProductDetail productDetail = new QProductDetail("productDetail");
 
-    public final StringPath description = createString("description");
-
     public final NumberPath<Long> pk = createNumber("pk", Long.class);
 
     public final QProduct product;

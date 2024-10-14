@@ -20,8 +20,6 @@ public class ProductDetail {
     @JoinColumn(name = "product_id")
     private Product product;
     @Column
-    private String description;
-    @Column
     private LocalDateTime registeredDate;
     @Column
     private Long viewCount;

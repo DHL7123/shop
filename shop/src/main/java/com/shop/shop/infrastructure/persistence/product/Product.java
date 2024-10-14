@@ -23,7 +23,10 @@ public class Product {
     private String description;
 
     @Column(nullable = false)
-    private Long stockQuantity; // 재고는 0 이상이어야 함
+    private String category;
+
+    @Column(nullable = false)
+    private Long stockQuantity;
 
     @Column(nullable = false)
     private Long price; // 가격은 0보다 커야 함
@@ -52,4 +55,10 @@ public class Product {
             throw new IllegalArgumentException("재고 수량은 0보다 커야 합니다.");
         }
     }
+
+    // 재고가 있는지 여부를 반환하는 메서드
+    public boolean isInStock() {
+        return this.stockQuantity > 0;  // 재고가 0보다 클 경우 true 반환
+    }
+
 }
