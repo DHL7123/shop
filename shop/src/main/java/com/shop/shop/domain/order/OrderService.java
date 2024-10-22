@@ -11,11 +11,10 @@ import java.util.List;
 
 public interface OrderService {
 
-    OrderResponseDto createOrder(OrderRequestDto requestDto);
+    List<OrderResponseDto> createOrders(List<OrderRequestDto> orderRequestDtos);
     void cancelOrder(Long orderId);
     OrderResponseDto getOrder(Long orderId);
     List<OrderResponseDto> getAllOrders();
     OrderResponseDto updateOrder(Long orderId, OrderRequestDto requestDto);
     List<OrderResponseDto> getOrdersWithConditions(OrderConditionDto conditionDto);
-    List<OrderResponseDto> createMultipleOrders(List<OrderRequestDto> orderRequestDto);
 }

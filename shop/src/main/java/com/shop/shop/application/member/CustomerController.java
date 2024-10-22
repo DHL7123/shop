@@ -23,7 +23,6 @@ import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 public class CustomerController {
     private final CustomerService customerService;
 
-    // TODO : Filter 에 관한 기본 지식 학습 필요 (Filter, Interceptor)
 
     // SEQ 1 : /login API 를 통해 CustomerService 인터페이스에 로그인 동작 요청
 

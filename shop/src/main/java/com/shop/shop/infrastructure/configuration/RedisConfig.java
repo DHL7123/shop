@@ -15,7 +15,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.time.Duration;
 
-import static com.shop.shop.infrastructure.constant.CacheConstants.GET_ORDER_CACHE;
+import static com.shop.shop.infrastructure.constant.CacheConstants.REDIS_CACHE;
 import static org.springframework.data.redis.serializer.RedisSerializationContext.SerializationPair.fromSerializer;
 
 @Configuration
@@ -32,7 +32,7 @@ public class RedisConfig {
         redisStandaloneConfiguration.setHostName(HOST);
         redisStandaloneConfiguration.setPort(PORT);
         return new LettuceConnectionFactory(redisStandaloneConfiguration);
-    } // LETTUCE VS JEDIS 뭐 익것저것  차이 찾ㅇ보면ㄴ 좋음ㅁ
+    }
 
     @Bean
     public CacheManager cacheManager(LettuceConnectionFactory connectionFactory) {
@@ -50,7 +50,7 @@ public class RedisConfig {
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaultCacheConfig)
-                .withCacheConfiguration(GET_ORDER_CACHE, shortTermCacheConfig)
+                .withCacheConfiguration(REDIS_CACHE, shortTermCacheConfig)
                 .build();
     }
 

@@ -8,16 +8,14 @@ import com.shop.shop.infrastructure.persistence.product.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static com.shop.shop.infrastructure.constant.CacheConstants.GET_ORDER_CACHE;
+import static com.shop.shop.infrastructure.constant.CacheConstants.REDIS_CACHE;
 
 
 @Service
@@ -28,7 +26,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
 
     @Transactional(readOnly = true)
-    @Cacheable(GET_ORDER_CACHE)
+    @Cacheable(REDIS_CACHE)
     @Override
     public SearchResponseDto searchProducts(SearchProductFilterDto filterDto) {
         // 키워드와 카테고리로 제품 검색

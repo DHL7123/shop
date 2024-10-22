@@ -3,6 +3,7 @@ package com.shop.shop.infrastructure.persistence.order;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.shop.shop.infrastructure.constant.OrderStatus;
 import com.shop.shop.infrastructure.persistence.member.Customer;
+import com.shop.shop.infrastructure.persistence.product.Product;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -64,4 +65,13 @@ public class Orders {
     @JsonIgnore
     @OneToMany(mappedBy = "customer")
     private List<Orders> orderList;
+
+    public Orders(Product product, Long quantity, Customer customer, OrderStatus orderStatus, LocalDateTime now) {
+        this.productId = product.getId();  // 상품 ID 설정
+        this.quantity = quantity;          // 주문 수량 설정
+        this.customer = customer;          // 고객 정보 설정
+        this.status = orderStatus;         // 주문 상태 설정
+        this.orderDate = now;              // 주문 날짜 설정
+    }
 }
+

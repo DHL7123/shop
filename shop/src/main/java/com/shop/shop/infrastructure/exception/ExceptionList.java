@@ -14,7 +14,10 @@ public enum ExceptionList {
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED ,"접근 권한이 없습니다.", "UNAUTHORIZED"),
     UNSUPPORTED_TOKEN(HttpStatus.PROXY_AUTHENTICATION_REQUIRED ,"지원되지 않는 토큰입니다.", "UNSUPPORTED_TOKEN"),
     COMMUNICATION_FAULT(HttpStatus.SERVICE_UNAVAILABLE ,"API 통신에 실패했습니다.", "COMMUNICATION_FAULT"),
-    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR ," 서버 에러", "INTERNAL_SERVER_ERROR");
+    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR ," 서버 에러", "INTERNAL_SERVER_ERROR"),
+    NOT_ENOUGH_STOCK(HttpStatus.BAD_REQUEST,"재고가 부족합니다.", "NOT_ENOUGH_STOCK"),
+    INVALID_REQUEST(HttpStatus.BAD_REQUEST, "요청이 유효하지 않습니다.", "INVALID_REQUEST"),
+    FORBIDDEN(HttpStatus.FORBIDDEN, "권한이 없습니다.", "FORBIDDEN");
 
     private final HttpStatus httpStatus;
     private final String message;

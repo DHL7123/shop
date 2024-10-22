@@ -19,16 +19,9 @@ public class OrderController {
     private final OrderService orderService;
 
     //주문 생성
-    @PostMapping("/single")
-    public ResponseEntity<OrderResponseDto> createOrder(@RequestBody OrderRequestDto requestDto) {
-        OrderResponseDto orderResponseDto = orderService.createOrder(requestDto);
-        return ResponseEntity.ok(orderResponseDto);
-    }
-
-    // 여러 주문 생성
-    @PostMapping("/multiple")
-    public ResponseEntity<List<OrderResponseDto>> createMultipleOrders(@RequestBody List<OrderRequestDto> requestDto) {
-        List<OrderResponseDto> orderResponseDtos = orderService.createMultipleOrders(requestDto);
+    @PostMapping
+    public ResponseEntity<List<OrderResponseDto>> createOrder(@RequestBody List<OrderRequestDto> requestDtos) {
+        List<OrderResponseDto> orderResponseDtos = orderService.createOrders(requestDtos);
         return ResponseEntity.ok(orderResponseDtos);
     }
 

@@ -14,10 +14,14 @@ import com.shop.shop.infrastructure.persistence.product.Product;
 import com.shop.shop.infrastructure.persistence.product.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+
+import static com.shop.shop.infrastructure.constant.CacheConstants.REDIS_CACHE;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +33,7 @@ public class CartServiceImpl implements CartService {
     private final CustomerRepository customerRepository;
     private static final String CART_KEY_PREFIX  = "cart";
 
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public void addToCart(CartRequestDto cartRequestDto) {
         //유효성 검사
@@ -37,30 +42,24 @@ public class CartServiceImpl implements CartService {
         // 장바구니 키 생성
         String cartKey = CART_KEY_PREFIX + cartRequestDto.getCustomerId();
 
-        // 로그 추가: Redis 키와 값이 어떻게 저장되는지 확인
-        log.info("Cart Key: " + cartKey);
-        log.info("Product ID: " + cartRequestDto.getProductId() + ", Quantity: " + cartRequestDto.getQuantity());
-
         Map<String,Object> cartItem = (Map<String, Object>) redisTemplate.opsForHash().get(cartKey, String.valueOf(cartRequestDto.getProductId()));
 
         if(cartItem != null) {
             // 중복된 상품 수량 증가
             int existingQuantity = (int) cartItem.get("quantity");
             cartItem.put("quantity", existingQuantity + cartRequestDto.getQuantity());
-            log.info("updated quantity for product" + cartRequestDto.getProductId());
         }else{
             // 장바구니에 없는 상품 새로 추가
             cartItem = new HashMap<>();
             cartItem.put("productId", cartRequestDto.getProductId());
             cartItem.put("quantity", cartRequestDto.getQuantity());
-            log.info("added new product to cart" + cartItem);
         }
         // 레디스에 저장
         redisTemplate.opsForHash().put(cartKey, String.valueOf(cartRequestDto.getProductId()), cartItem);
 
     }
 
-
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public void updateCartItemQuantity(CartRequestDto cartRequestDto) {
         //유효성 검사
@@ -68,43 +67,74 @@ public class CartServiceImpl implements CartService {
 
         String cartKey = CART_KEY_PREFIX + cartRequestDto.getCustomerId();
 
-        try{
+        try {
+            // Redis에서 카트 아이템을 가져옵니다.
             Map<String, Object> cartItem = (Map<String, Object>) redisTemplate.opsForHash().get(cartKey, String.valueOf(cartRequestDto.getProductId()));
-            if (cartItem != null) {
 
-                cartItem = new HashMap<>(cartItem);
+            if (cartItem != null) {
+                // 카트 아이템 수정
+                cartItem = new HashMap<>(cartItem);  // 불변성 유지
                 cartItem.put("quantity", cartRequestDto.getQuantity()); // 수량 수정
+
+                // Redis에 수정된 항목 업데이트
                 redisTemplate.opsForHash().put(cartKey, String.valueOf(cartRequestDto.getProductId()), cartItem);
-            }else {
-                throw new IllegalArgumentException("No data ProductId: " + cartRequestDto.getProductId());
+            } else {
+                // 해당 상품이 없을 경우 예외 처리
+                throw new ServiceException(ExceptionList.NOT_EXIST_DATA);
             }
-        }catch (ClassCastException e){
-            throw new IllegalArgumentException("타입 불일치 오류",e);
+        } catch (ClassCastException e) {
+            // Redis 데이터 타입 불일치 시 예외 처리
+            throw new ServiceException(ExceptionList.INTERNAL_SERVER_ERROR);
         }
     }
 
-
+    @Transactional(readOnly = true)
     @Override
+    @Cacheable(REDIS_CACHE)
     public List<CartResponseDto> getCart(String customerId) {
+        // 고객 ID 유효성 검증
+        if (customerId == null || customerId.isEmpty()) {
+            throw new ServiceException(ExceptionList.INVALID_REQUEST);
+        }
+
         String cartKey = CART_KEY_PREFIX + customerId;
 
         try {
             List<CartResponseDto> cartResponseDtoList = new ArrayList<>();
+            // Redis에서 카트 아이템 가져오기
             Map<Object, Object> cartItems = (Map<Object, Object>) redisTemplate.opsForHash().entries(cartKey);
+
+            // 카트가 비어있는지 확인
+            if (cartItems == null || cartItems.isEmpty()) {
+                throw new ServiceException(ExceptionList.NOT_EXIST_DATA);
+            }
+
+            // 카트 아이템을 DTO로 변환
             for (Map.Entry<Object, Object> entry : cartItems.entrySet()) {
                 Map<String, Object> itemData = (Map<String, Object>) entry.getValue();
                 Long productId = Long.valueOf(itemData.get("productId").toString());
                 Integer quantity = Integer.valueOf(itemData.get("quantity").toString());
 
-                Product product = productRepository.findById(productId).orElseThrow(() -> new IllegalArgumentException("No data"));
+                // 상품 정보 조회
+                Product product = productRepository.findById(productId)
+                        .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_DATA));
+
+                // 카트 응답 DTO 생성
                 cartResponseDtoList.add(new CartResponseDto(product, quantity));
             }
+
             return cartResponseDtoList;
+
         } catch (ClassCastException e) {
-            throw new IllegalArgumentException("타입 불일치");
+            // Redis에서 타입 변환 오류 시 예외 처리
+            throw new ServiceException(ExceptionList.INTERNAL_SERVER_ERROR);
+        } catch (NumberFormatException e) {
+            // 숫자 변환 오류 시 예외 처리
+            throw new ServiceException(ExceptionList.BAD_REQUEST);
         }
     }
 
+    @Transactional
     @Override
     public void clearCart(String customerId) {
         String cartKey = CART_KEY_PREFIX + customerId;
@@ -112,6 +142,7 @@ public class CartServiceImpl implements CartService {
 
     }
 
+    @Transactional
     @Override
     public void removeFromCart(CartRequestDto cartRequestDto) {
 
@@ -128,11 +159,9 @@ public class CartServiceImpl implements CartService {
                 // 수량이 남아있을 경우
                 cartItem.put("quantity", newQuantity);
                 redisTemplate.opsForHash().put(cartKey, String.valueOf(cartRequestDto.getProductId()), cartItem);
-                log.info("Updated quantity for product " + cartRequestDto.getProductId() + ", Quantity: " + newQuantity);
             } else {
                 // 수량이 0이하일 경우 Redis에서 항목 삭제
                 redisTemplate.opsForHash().delete(cartKey, String.valueOf(cartRequestDto.getProductId()));
-                log.info("Product " + cartRequestDto.getProductId() + " removed from cart.");
             }
 
         } else {
@@ -149,28 +178,27 @@ public class CartServiceImpl implements CartService {
     // 상품 유효성 검증 (상품 존재 여부 및 재고 확인)
     private void validateProduct(Long productId, int requestedQuantity) {
         if (productId == null || productId <= 0) {
-            throw new ServiceException(ExceptionList.BAD_REQUEST);
+            throw new ServiceException(ExceptionList.INVALID_REQUEST);
         }
 
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_DATA));
 
-        // 상품의 재고 확인
+        // 상품 재고 확인
         if (product.getStockQuantity() < requestedQuantity) {
-            throw new ServiceException(ExceptionList.BAD_REQUEST);
+            throw new ServiceException(ExceptionList.NOT_ENOUGH_STOCK);
         }
     }
 
     // 고객 유효성 검증 (계정 존재 여부 확인)
     private void validateCustomer(String customerId) {
         if (customerId == null || customerId.isEmpty()) {
-            throw new ServiceException(ExceptionList.BAD_REQUEST);
+            throw new ServiceException(ExceptionList.INVALID_REQUEST);
         }
 
         boolean customerExists = customerRepository.existsByCustomerId(customerId);
         if (!customerExists) {
-            throw new ServiceException(ExceptionList.NOT_EXIST_DATA);
+            throw new ServiceException(ExceptionList.NOT_EXIST_CUSTOMER_ACCOUNT);
         }
     }
-
 }
