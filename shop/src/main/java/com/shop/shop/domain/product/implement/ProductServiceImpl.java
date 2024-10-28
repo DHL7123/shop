@@ -3,6 +3,8 @@ package com.shop.shop.domain.product.implement;
 import com.shop.shop.application.product.dto.SearchProductFilterDto;
 import com.shop.shop.application.product.dto.SearchResponseDto;
 import com.shop.shop.domain.product.ProductService;
+import com.shop.shop.infrastructure.exception.ExceptionList;
+import com.shop.shop.infrastructure.exception.ServiceException;
 import com.shop.shop.infrastructure.persistence.product.Product;
 import com.shop.shop.infrastructure.persistence.product.ProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +31,10 @@ public class ProductServiceImpl implements ProductService {
     @Cacheable(REDIS_CACHE)
     @Override
     public SearchResponseDto searchProducts(SearchProductFilterDto filterDto) {
-        // 키워드와 카테고리로 제품 검색
+        if (filterDto.getKeyword() == null || filterDto.getKeyword().isEmpty()) {
+            throw new ServiceException(ExceptionList.BAD_REQUEST);
+        }
+
         List<Product> products = productRepository.searchByKeywordAndCategory(filterDto);
 
         if (products.isEmpty()) {
@@ -42,5 +47,4 @@ public class ProductServiceImpl implements ProductService {
 
         return new SearchResponseDto(products, minPrice, maxPrice, stockAvailability);
     }
-
 }

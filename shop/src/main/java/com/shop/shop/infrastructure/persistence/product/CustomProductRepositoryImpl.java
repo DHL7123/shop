@@ -26,11 +26,7 @@ public class CustomProductRepositoryImpl implements CustomProductRepository {
         BooleanBuilder builder = new BooleanBuilder();
 
         // 필수 조건: keyword 필터
-        if (searchProductFilterDto.getKeyword() != null && !searchProductFilterDto.getKeyword().isEmpty()) {
-            builder.and(product.name.containsIgnoreCase(searchProductFilterDto.getKeyword()));
-        } else {
-            throw new IllegalArgumentException("Keyword is required.");
-        }
+        builder.and(product.name.containsIgnoreCase(searchProductFilterDto.getKeyword()));
 
         // 선택 조건: category 필터 (null이 아닐 경우에만)
         if (searchProductFilterDto.getCategory() != null && !searchProductFilterDto.getCategory().isEmpty()) {

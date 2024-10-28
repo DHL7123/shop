@@ -56,7 +56,7 @@ public class OrderController {
     }
 
     //주문 수정
-    @PutMapping({"/id"})
+    @PutMapping("/{id}")
     public ResponseEntity<OrderResponseDto> updateOrder(@PathVariable("id") Long orderId, @RequestBody OrderRequestDto orderRequestDto) {
         OrderResponseDto updatedOrder = orderService.updateOrder(orderId, orderRequestDto);
         return new ResponseEntity<>(updatedOrder, HttpStatus.OK);

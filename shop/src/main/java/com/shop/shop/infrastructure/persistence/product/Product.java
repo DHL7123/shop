@@ -34,6 +34,12 @@ public class Product {
     @Column(nullable = false)
     private String shipping;
 
+    public Product(long id, String name, long stockQuantity) {
+        this.id = id;
+        this.name = name;
+        this.stockQuantity = stockQuantity;
+    }
+
     // 재고 감소
     public void decreaseStockQuantity(Long stockQuantity) {
         validateStockQuantity(stockQuantity);

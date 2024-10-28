@@ -73,5 +73,6 @@ public class Orders {
         this.status = orderStatus;         // 주문 상태 설정
         this.orderDate = now;              // 주문 날짜 설정
     }
+
 }
 
