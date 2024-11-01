@@ -29,7 +29,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     private static final String ROLE_CUSTOMER = "ROLE_CUSTOMER";
     private static final String ROLE_ADMIN = "ROLE_ADMIN";
 
-    // SEQ 9 : loadUserByUsername 을 통해 권한이 부여된 UserDetail 클래스를 생성 후 그 정보를 통해 User 객체를 생성해 반환한다.
+    //  loadUserByUsername 을 통해 권한이 부여된 UserDetail 클래스를 생성 후 그 정보를 통해 User 객체를 생성해 반환한다.
     // * 여기서 유저는 Spring SecurityContext 에 등록될 권한이 포함된 클래스이다.
     // * 이 지점에서 로그인 되는 사용자의 권한이 지정된다.
 

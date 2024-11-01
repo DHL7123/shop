@@ -16,4 +16,3 @@ public class LoginRequestDto {
     private String password;
 }
 
-// * [Spring-Validation 찾아보기]

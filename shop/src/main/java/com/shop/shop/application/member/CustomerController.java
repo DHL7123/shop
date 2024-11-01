@@ -21,10 +21,8 @@ import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 @RestController
 @RequiredArgsConstructor
 public class CustomerController {
+
     private final CustomerService customerService;
-
-
-    // SEQ 1 : /login API 를 통해 CustomerService 인터페이스에 로그인 동작 요청
 
     @PostMapping("/login")
     public ResponseEntity<Object> login(@Valid @RequestBody LoginRequestDto loginRequestDto) {

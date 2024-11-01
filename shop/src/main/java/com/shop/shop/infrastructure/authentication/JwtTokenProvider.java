@@ -47,7 +47,7 @@ public class JwtTokenProvider {
         Date accessTokenExpiresIn = new Date(now + ACCESS_TOKEN_EXPIRE_TIME);
 
         // * accessToken = JWT 토큰의 초기 발급 네이밍, 이후 갱신되는 토큰은 refreshToken 으로 명칭한다.
-        // * setSubject, 토큰에 지정될 제목. 권한 객체를 만들 당시 customerId 로 등록되었음 (아마..)
+        // * setSubject, 토큰에 지정될 제목. 권한 객체를 만들 당시 customerId 로 등록되었음
         // * claim, 토큰에 저장될 데이터 블록, 여러개 포함 가능하니 그냥 포함되는 정보 블록 정도로 생각하면 된다. 여기선 권한 등록
         // * setExpiration, 토큰의 만료기간 설정
         // * signWith, JWT 토큰 암호화 키와 알고리즘을 지정한다.
@@ -81,7 +81,6 @@ public class JwtTokenProvider {
         // * UsernamePasswordAuthenticationToken : 사용자의 아이디, 패스워드, 권한이 담긴 객체
 
         // * UsernamePasswordAuthenticationToken 는 SecurityContext 에 저장되어 추후 권한에 검증에 사용된다.
-        // * 여기서 왜 로그인 할 때 SecurityContext 안에 권한을 담지 않았지? 라고 생각할 수 있으나,
         // * 로그인 호출을 통해 토큰 발급 -> 토큰 정보를 담아 메인페이지 콜백 호출 순서로 이해하면 된다.
 
         UserDetails principal = new CustomUser(claims.getSubject(), "", authorities);
