@@ -2,28 +2,48 @@ server:
   port: 8000
 
 spring:
-  application:
-    name: spring-security-demo
-  datasource:
-    driver-class-name: org.h2.Driver
-    url: 'jdbc:h2:mem:test'
-    username: sa
-    password:
+      application:
+        name: spring-project
+#      datasource:
+#        driver-class-name: org.h2.Driver
+#        url: 'jdbc:h2:mem:test'
+#        username: sa
+#        password:
+#
+#      h2:
+#        console:
+#          enabled: true
+#          path: /h2-console
+#
+#      jpa:
+#        database-platform: org.hibernate.dialect.H2Dialect
+#        hibernate:
+#          ddl-auto: create
+#        properties:
+#          hibernate:
+#            dialect: org.hibernate.dialect.H2Dialect
+#            format_sql: true
+#            show_sql: false0
 
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+      datasource:
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://localhost:3306/schema_project?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+        username: root
+        password: 1234
 
-  jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
-    hibernate:
-      ddl-auto: create
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
-        format_sql: true
-        show_sql: false
+      jpa:
+        database-platform: org.hibernate.dialect.MySQL8Dialect
+        hibernate:
+          ddl-auto: create
+        properties:
+          hibernate:
+            dialect: org.hibernate.dialect.MySQL8Dialect
+            format_sql: true
+            show_sql: false0
+
+      redis:
+        host: 127.0.0.1
+        port: 6379
 
 jwt:
   security:

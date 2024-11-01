@@ -16,9 +16,6 @@ public class CorsConfig {
     // * 아래 소스코드에 addAllowedOriginPattern 을 통해 프론트 서버인 3030을 열어주고,
     // * 해당 서버에 한하여 헤더, 메소드 등 전부 공유 허용 처리함
     // * 추가로 Authorization 헤더를 노출시켰는데, 이는 JWT 토큰이 저장될 경로임
-
-    // * 사실 프론트 작업은 하지 않을거지만, 알아두면 정말 좋은 내용이라 추가해뒀습니다냥~
-
     @Bean
     public CorsFilter corsFilter() {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
