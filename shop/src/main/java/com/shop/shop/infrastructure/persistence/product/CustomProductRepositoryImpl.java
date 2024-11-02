@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import javax.persistence.Query;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -25,13 +24,13 @@ public class CustomProductRepositoryImpl implements CustomProductRepository {
         QProduct product = QProduct.product;
         BooleanBuilder builder = new BooleanBuilder();
 
-        // 필수 조건: keyword 필터
-        builder.and(product.name.containsIgnoreCase(searchProductFilterDto.getKeyword()));
-
         // 선택 조건: category 필터 (null이 아닐 경우에만)
         if (searchProductFilterDto.getCategory() != null && !searchProductFilterDto.getCategory().isEmpty()) {
             builder.and(product.category.eq(searchProductFilterDto.getCategory()));
         }
+
+        // 필수 조건: keyword 필터
+        builder.and(product.name.containsIgnoreCase(searchProductFilterDto.getKeyword()));
 
         // 선택 조건: 가격 범위 필터 (null이 아닐 경우에만)
         if (searchProductFilterDto.getMinPrice() != null) {
@@ -46,8 +45,10 @@ public class CustomProductRepositoryImpl implements CustomProductRepository {
             builder.and(product.stockQuantity.gt(0)); // 재고가 있을 경우
         }
 
+
+
         // 쿼리 실행 및 결과 반환
-        return queryFactory.selectFrom(product)  // 명확하게 Product 타입 지정
+        return queryFactory.selectFrom(product)
                 .where(builder)
                 .fetch();  // Product 타입으로 결과 리스트 가져오기
     }

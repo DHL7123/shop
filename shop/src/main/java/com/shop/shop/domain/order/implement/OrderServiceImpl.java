@@ -102,8 +102,7 @@ public class OrderServiceImpl implements OrderService {
         // Redis에 없으면 DB에서 조회
         Orders order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_DATA));
-        OrderResponseDto orderResponseDto = new OrderResponseDto(order);
-        return orderResponseDto;
+        return new OrderResponseDto(order);
     }
 
 

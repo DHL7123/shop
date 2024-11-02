@@ -11,6 +11,7 @@ import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.GenericToStringSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.time.Duration;
@@ -68,6 +69,19 @@ public class RedisConfig {
         template.setHashKeySerializer(new StringRedisSerializer());
         // 해시의 값도 JSON으로 직렬화
         template.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
+
+        return template;
+    }
+
+    @Bean
+    public RedisTemplate<String, Long> redisTemplateForInteger(RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, Long> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
+
+        // 키를 String으로 직렬화
+        template.setKeySerializer(new StringRedisSerializer());
+        // 값을 Long으로 직렬화
+        template.setValueSerializer(new GenericToStringSerializer<>(Long.class));
 
         return template;
     }
