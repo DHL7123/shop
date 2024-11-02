@@ -56,7 +56,7 @@ public class OrderServiceImpl implements OrderService {
                 throw new ServiceException(ExceptionList.UNSUPPORTED_TOKEN);
             }
             // 상품 조회 및 예외 처리
-            Product product = productRepository.findById(requestDto.getProductId())
+            Product product = productRepository.findByIdWithPessimisticLock(requestDto.getProductId())
                     .orElseThrow(() ->
                             new ServiceException(ExceptionList.NOT_EXIST_DATA)
                     );
@@ -128,7 +128,7 @@ public class OrderServiceImpl implements OrderService {
         Orders existingOrder = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_DATA));  // 주문이 없을 경우
 
-        Product product = productRepository.findById(existingOrder.getProductId())
+        Product product = productRepository.findByIdWithPessimisticLock(existingOrder.getProductId())
                 .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_DATA));  // 상품이 없을 경우
 
         // 고객 유효성 검사
@@ -179,7 +179,7 @@ public class OrderServiceImpl implements OrderService {
         Orders order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_DATA));  // 주문이 없을 경우
 
-        Product product = productRepository.findById(order.getProductId())
+        Product product = productRepository.findByIdWithPessimisticLock(order.getProductId())
                 .orElseThrow(() -> new ServiceException(ExceptionList.NOT_EXIST_DATA));  // 상품이 없을 경우
 
         product.increaseStock(order.getQuantity());  // 주문 취소 시 재고 복구

@@ -29,8 +29,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 class OrderServiceTest {
     @Mock
@@ -79,7 +77,7 @@ class OrderServiceTest {
                 new OrderRequestDto(1L, 2L, customer.getCustomerId(), "validToken")
         );
         when(jwtTokenProvider.validateToken(anyString())).thenReturn(true); // 토큰 검증 통과
-        when(productRepository.findById(anyLong())).thenReturn(Optional.of(product));
+        when(productRepository.findByIdWithPessimisticLock(anyLong())).thenReturn(Optional.of(product));
         when(customerRepository.findByCustomerId(anyString())).thenReturn(Optional.of(customer));
         when(orderRepository.save(any(Orders.class))).thenReturn(order);
 
@@ -99,7 +97,7 @@ class OrderServiceTest {
                 new OrderRequestDto(1L, 200L, customer.getCustomerId(), "validToken")
         );
         when(jwtTokenProvider.validateToken(anyString())).thenReturn(true);
-        when(productRepository.findById(anyLong())).thenReturn(Optional.of(product));
+        when(productRepository.findByIdWithPessimisticLock(anyLong())).thenReturn(Optional.of(product));
         when(customerRepository.findByCustomerId(anyString())).thenReturn(Optional.of(customer));
 
         // When & Then
@@ -143,7 +141,7 @@ class OrderServiceTest {
         when(jwtTokenProvider.getCustomerIdFromToken(anyString())).thenReturn(customer.getCustomerId()); // 토큰에서 customerId 추출
         when(customerRepository.findByCustomerId(customer.getCustomerId())).thenReturn(Optional.of(customer)); // 고객 조회
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
-        when(productRepository.findById(order.getProductId())).thenReturn(Optional.of(product));
+        when(productRepository.findByIdWithPessimisticLock(order.getProductId())).thenReturn(Optional.of(product));
 
         // When
         OrderResponseDto response = orderService.updateOrder(orderId, requestDto);
@@ -171,7 +169,7 @@ class OrderServiceTest {
         // Given
         Long orderId = 1L;
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
-        when(productRepository.findById(order.getProductId())).thenReturn(Optional.of(product));
+        when(productRepository.findByIdWithPessimisticLock(order.getProductId())).thenReturn(Optional.of(product));
 
         // When
         orderService.cancelOrder(orderId);
